@@ -1,4 +1,5 @@
 wavio
+pipwin
 pyaudio
 pyrebase4
 streamlit
