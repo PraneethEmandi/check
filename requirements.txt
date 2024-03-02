@@ -1,5 +1,4 @@
-wavio
-pyaudio
+
 pyrebase4
 streamlit
 assemblyai
