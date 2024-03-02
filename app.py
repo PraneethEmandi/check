@@ -9,8 +9,6 @@ import os
 import assemblyai as aai
 from txtai.pipeline import Summary
 from PyPDF2 import PdfReader
-import pyaudio
-import wave
 import base64
 st.set_page_config(layout="wide")
 firebaseConfig = {
@@ -43,35 +41,35 @@ pipe_lr = joblib.load(open("model/text_emotions.pkl", "rb"))
 
 
 # Function to record audio using PyAudio
-def record_audio(seconds, fs, channels):
-  CHUNK = 1024
-  FORMAT = pyaudio.paInt16
-  p = pyaudio.PyAudio()
-  stream = p.open(format=FORMAT,
-                  channels=channels,
-                  rate=fs,
-                  input=True,
-                  frames_per_buffer=CHUNK)
-
-  frames = []
-  for i in range(0, int(fs / CHUNK * seconds)):
-    data = stream.read(CHUNK)
-    frames.append(data)
-
-  stream.stop_stream()
-  stream.close()
-  p.terminate()
-
-  # Convert frames to bytes
-  audio_data = b''.join(frames)
-  return audio_data
-# Function to save audio to WAV file
-def save_audio_to_wav(audio_data, file_path, fs, channels):
-    with wave.open(file_path, 'wb') as wf:
-        wf.setnchannels(channels)
-        wf.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
-        wf.setframerate(fs)
-        wf.writeframes(audio_data)
+# def record_audio(seconds, fs, channels):
+#   CHUNK = 1024
+#   FORMAT = pyaudio.paInt16
+#   p = pyaudio.PyAudio()
+#   stream = p.open(format=FORMAT,
+#                   channels=channels,
+#                   rate=fs,
+#                   input=True,
+#                   frames_per_buffer=CHUNK)
+#
+#   frames = []
+#   for i in range(0, int(fs / CHUNK * seconds)):
+#     data = stream.read(CHUNK)
+#     frames.append(data)
+#
+#   stream.stop_stream()
+#   stream.close()
+#   p.terminate()
+#
+#   # Convert frames to bytes
+#   audio_data = b''.join(frames)
+#   return audio_data
+# # Function to save audio to WAV file
+# def save_audio_to_wav(audio_data, file_path, fs, channels):
+#     with wave.open(file_path, 'wb') as wf:
+#         wf.setnchannels(channels)
+#         wf.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
+#         wf.setframerate(fs)
+#         wf.writeframes(audio_data)
 
 @st.cache_resource
 def text_summary(text, maxlength=None):
@@ -154,7 +152,7 @@ if choice == 'Login':
     if login:
         user = auth.sign_in_with_email_and_password(email, password)
         st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
-        bio = st.radio('Jump to', ['Home', 'Settings', 'Summarize Text', 'Summarize Document', 'Summarize Audio'])
+        bio = st.radio('Jump to', ['Home', 'Settings', 'Summarize Text', 'Summarize Document'])
 
         # SETTINGS PAGE
         if bio == 'Settings':
@@ -350,244 +348,244 @@ if choice == 'Login':
 
 
         # SUMMARIZE DOCUMENT
-        elif bio == 'Summarize Document':
-            # Your code for summarizing document here
-            st.subheader("Summarize Document using txtai")
-
-            input_file = st.file_uploader("Upload your document here", type=['pdf'])
-
-            # Image upload option
-            uploaded_image = st.file_uploader("Upload an image")
-
-            if st.button("Summarize Document"):
-                with open("doc_file.pdf", "wb") as f:
-                    f.write(input_file.getbuffer())
-
-                col1, col2, col3 = st.columns([1, 1, 1])
-
-                with col1:
-                    st.info("File uploaded successfully")
-
-                    extracted_text = extract_text_from_pdf("doc_file.pdf")
-
-                    st.markdown("**Extracted Text is Below:**")
-
-                    st.info(extracted_text)
-
-                with col2:
-                    st.markdown("**Summary Result**")
-
-                    doc_summary = text_summary(extracted_text)
-
-                    st.success(doc_summary)
-
-                with col3:
-                    st.markdown("**Emotion Prediction**")
-
-                    prediction = predict_emotions(extracted_text)
-
-                    probability = get_prediction_proba(extracted_text)
-
-                    emoji_icon = emotions_emoji_dict[prediction]
-
-                    st.write("{}:{}".format(prediction, emoji_icon))
-
-                    st.write("Confidence:{}".format(np.max(probability)))
-
-                    st.success("Prediction Probability")
-
-                    proba_df = pd.DataFrame(probability, columns=pipe_lr.classes_)
-
-                    proba_df_clean = proba_df.T.reset_index()
-
-                    proba_df_clean.columns = ["emotions", "probability"]
-
-                    fig = alt.Chart(proba_df_clean).mark_bar().encode(x='emotions', y='probability', color='emotions')
-
-                    st.altair_chart(fig, use_container_width=True)
-
-                    if prediction == "joy":
-                        st.info(
-                            "Celebrate the moments of joy, for they are the fuel that propels you forward on your journey. Let the warmth of joy fill your heart and illuminate your path. Use this positive energy to inspire others, spread kindness, and create more moments of joy in your life and the lives of those around you. Embrace the beauty of joy, for it is a precious gift that enriches your soul and nourishes your spirit.")
-                    elif prediction == "surprise":
-                        st.info(
-                            "Embrace the magic of surprise as a reminder of life's infinite possibilities. Allow yourself to be swept away by the unexpected, for it is in these moments that we find joy, growth, and new beginnings. Embrace the unknown with open arms, for within it lies the potential for extraordinary experiences and profound transformations. Embrace surprise as a companion on your journey, guiding you to new horizons and unveiling the wonders that await you.")
-                    elif prediction == "sadness":
-                        st.info(
-                            "Sadness is a gentle reminder of our capacity to feel deeply. Allow yourself to acknowledge and honor your emotions, for they are a testament to your humanity. Through moments of sadness, we discover empathy, compassion, and resilience. Remember, just as the clouds pass, so too shall sadness. Embrace the journey, knowing that every tear holds the promise of healing and growth.")
-                    elif prediction == "neutral":
-                        st.info(
-                            "In the calm waters of neutrality, lies the canvas of possibility. Use this moment to reflect, to pause, and to appreciate the beauty of simplicity. In neutrality, there is freedom to explore, to dream, and to discover new paths. Embrace the serenity of the present moment, for within it, lies the potential to shape your future with clarity and purpose.")
-                    elif prediction == "anger":
-                        st.info(
-                            "Harness the power of your anger as fuel for positive change. Use its intensity to drive you towards constructive action and meaningful transformation. Channel your anger into passion for justice, determination for personal growth, and empathy for understanding. Remember, beneath the surface of anger lies a wellspring of energy waiting to be directed towards creating a better world and a better you. Embrace this emotion as a catalyst for empowerment and renewal.")
-                    elif prediction == "fear":
-                        st.info(
-                            "Embrace fear as a catalyst for growth. Recognize it as a sign that you're stepping out of your comfort zone, where real transformation occurs. Channel fear into fuel for courage and resilience. Break free from the chains of apprehension, for within fear lies untapped potential and opportunity. Embrace the unknown with a spirit of curiosity, knowing that overcoming fear leads to personal evolution and empowerment.")
-                    elif prediction == "disgust":
-                        st.info(
-                            "In moments of disgust, remember that discomfort often precedes growth. Use this feeling as a catalyst for change, guiding you toward healthier choices and environments. Embrace the power within you to transform negativity into positivity. Recognize that through confronting what disgusts you, you reclaim control over your surroundings and pave the way for a more fulfilling and authentic life")
-                    elif prediction == "shame":
-                        st.info(
-                            "Shame may weigh heavy, but it doesn't define your worth. Acknowledge it as a signal for growth, not a sentence of condemnation. Embrace vulnerability, for it's the gateway to self-compassion and healing. Recognize that imperfection is part of being human. Let go of shame's grip, and allow self-acceptance to guide you towards a path of authenticity and empowerment.")
-
-                # Store text, image, summary, and prediction in the database
-                now = datetime.now()
-                dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-                # Convert image bytes to base64 string for storage
-                if uploaded_image is not None:
-                    img_str = base64.b64encode(uploaded_image.read()).decode("utf-8")
-                else:
-                    img_str = None
-                db.child(user['localId']).child("Summaries").push({
-                    'Text': extracted_text,
-                    'Summary': doc_summary,
-                    'Image': img_str,  # Store base64 image string here
-                    'Timestamp': dt_string
-                })
-
-        if bio == 'Summarize Audio':
-            # Your code for summarizing audio here
-            st.title("Summarize Audio")
-            st.write("Select an option to provide audio input.")
-
-            option = st.radio("Select Audio Input Option", ("Upload Audio File", "Record Live Audio"))
-
-            # Image upload option
-            uploaded_image = st.file_uploader("Upload an image")
-
-            if option == "Upload Audio File":
-                uploaded_file = st.file_uploader("Upload an audio file", type=["wav", "mp3"])
-
-                if uploaded_file:
-                    audio_bytes = uploaded_file.read()
-                    audio_path = "audio_file.wav"  # Temporary file path for audio file
-                    with open(audio_path, "wb") as f:
-                        f.write(audio_bytes)
-
-                    st.audio(audio_path, format="audio/wav")
-
-                    # Button to process the audio
-                    if st.button("Summarize Audio"):
-                        # Transcribe the audio file
-                        aai.settings.api_key = "ed9174d8ec5a45afa0075b544b8eb2d7"
-                        transcriber = aai.Transcriber()
-                        transcript = transcriber.transcribe(audio_path)
-
-                        # Display the transcription summary
-                        st.subheader("Transcription Summary")
-                        transcript_summary = text_summary(transcript.text)
-                        st.success(transcript_summary)
-
-                        # Display the emotion prediction
-                        st.subheader("Emotion Prediction")
-                        prediction = predict_emotions(transcript.text)
-                        probability = get_prediction_proba(transcript.text)
-                        emoji_icon = emotions_emoji_dict[prediction]
-                        st.write("{}:{}".format(prediction, emoji_icon))
-                        st.write("Confidence:{}".format(np.max(probability)))
-
-                        st.success("Prediction Probability")
-                        proba_df = pd.DataFrame(probability, columns=pipe_lr.classes_)
-                        proba_df_clean = proba_df.T.reset_index()
-                        proba_df_clean.columns = ["emotions", "probability"]
-                        fig = alt.Chart(proba_df_clean).mark_bar().encode(x='emotions', y='probability',
-                                                                          color='emotions')
-                        st.altair_chart(fig, use_container_width=True)
-
-                        if prediction == "joy":
-                            st.info(
-                                "Celebrate the moments of joy, for they are the fuel that propels you forward on your journey. Let the warmth of joy fill your heart and illuminate your path. Use this positive energy to inspire others, spread kindness, and create more moments of joy in your life and the lives of those around you. Embrace the beauty of joy, for it is a precious gift that enriches your soul and nourishes your spirit.")
-                        elif prediction == "surprise":
-                            st.info(
-                                "Embrace the magic of surprise as a reminder of life's infinite possibilities. Allow yourself to be swept away by the unexpected, for it is in these moments that we find joy, growth, and new beginnings. Embrace the unknown with open arms, for within it lies the potential for extraordinary experiences and profound transformations. Embrace surprise as a companion on your journey, guiding you to new horizons and unveiling the wonders that await you.")
-                        elif prediction == "sadness":
-                            st.info(
-                                "Sadness is a gentle reminder of our capacity to feel deeply. Allow yourself to acknowledge and honor your emotions, for they are a testament to your humanity. Through moments of sadness, we discover empathy, compassion, and resilience. Remember, just as the clouds pass, so too shall sadness. Embrace the journey, knowing that every tear holds the promise of healing and growth.")
-                        elif prediction == "neutral":
-                            st.info(
-                                "In the calm waters of neutrality, lies the canvas of possibility. Use this moment to reflect, to pause, and to appreciate the beauty of simplicity. In neutrality, there is freedom to explore, to dream, and to discover new paths. Embrace the serenity of the present moment, for within it, lies the potential to shape your future with clarity and purpose.")
-                        elif prediction == "anger":
-                            st.info(
-                                "Harness the power of your anger as fuel for positive change. Use its intensity to drive you towards constructive action and meaningful transformation. Channel your anger into passion for justice, determination for personal growth, and empathy for understanding. Remember, beneath the surface of anger lies a wellspring of energy waiting to be directed towards creating a better world and a better you. Embrace this emotion as a catalyst for empowerment and renewal.")
-                        elif prediction == "fear":
-                            st.info(
-                                "Embrace fear as a catalyst for growth. Recognize it as a sign that you're stepping out of your comfort zone, where real transformation occurs. Channel fear into fuel for courage and resilience. Break free from the chains of apprehension, for within fear lies untapped potential and opportunity. Embrace the unknown with a spirit of curiosity, knowing that overcoming fear leads to personal evolution and empowerment.")
-                        elif prediction == "disgust":
-                            st.info(
-                                "In moments of disgust, remember that discomfort often precedes growth. Use this feeling as a catalyst for change, guiding you toward healthier choices and environments. Embrace the power within you to transform negativity into positivity. Recognize that through confronting what disgusts you, you reclaim control over your surroundings and pave the way for a more fulfilling and authentic life")
-                        elif prediction == "shame":
-                            st.info(
-                                "Shame may weigh heavy, but it doesn't define your worth. Acknowledge it as a signal for growth, not a sentence of condemnation. Embrace vulnerability, for it's the gateway to self-compassion and healing. Recognize that imperfection is part of being human. Let go of shame's grip, and allow self-acceptance to guide you towards a path of authenticity and empowerment.")
-
-                        # Store text, image, summary, and prediction in the database
-                        now = datetime.now()
-                        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-                        # Convert image bytes to base64 string for storage
-                        if uploaded_image is not None:
-                            img_str = base64.b64encode(uploaded_image.read()).decode("utf-8")
-                        else:
-                            img_str = None
-                        db.child(user['localId']).child("Summaries").push({
-                            'Text': transcript.text,
-                            'Summary': transcript_summary,
-                            'Image': img_str,
-                            'Timestamp': dt_string
-                        })
-            elif option == "Record Live Audio":
-                duration = st.slider("Recording Duration (seconds):", 1, 150, 3)
-                fs = 44100  # Sample rate
-                channels = 2  # Number of audio channels (1 for mono, 2 for stereo)
-                recording = record_audio(duration, fs, channels)
-
-                # Save the recording to a WAV file
-                audio_path = "audio_file.wav"
-                with wave.open(audio_path, 'wb') as wf:
-                    wf.setnchannels(channels)
-                    wf.setsampwidth(pyaudio.PyAudio().get_sample_size(pyaudio.paInt16))
-                    wf.setframerate(fs)
-                    wf.writeframes(recording)
-
-                st.audio(audio_path, format="audio/wav")
-
-                # Button to process the audio
-                if st.button("Summarize Audio"):
-                    # Transcribe the audio file
-                    aai.settings.api_key = "ed9174d8ec5a45afa0075b544b8eb2d7"
-                    transcriber = aai.Transcriber()
-                    transcript = transcriber.transcribe(audio_path)
-
-                    # Display the transcription summary
-                    st.subheader("Transcription Summary")
-                    transcript_summary = text_summary(transcript.text)
-                    st.success(transcript_summary)
-
-                    # Display the emotion prediction
-                    st.subheader("Emotion Prediction")
-                    prediction = predict_emotions(transcript.text)
-                    probability = get_prediction_proba(transcript.text)
-                    emoji_icon = emotions_emoji_dict[prediction]
-                    st.write("{}:{}".format(prediction, emoji_icon))
-                    st.write("Confidence:{}".format(np.max(probability)))
-
-                    st.success("Prediction Probability")
-                    proba_df = pd.DataFrame(probability, columns=pipe_lr.classes_)
-                    proba_df_clean = proba_df.T.reset_index()
-                    proba_df_clean.columns = ["emotions", "probability"]
-                    fig = alt.Chart(proba_df_clean).mark_bar().encode(x='emotions', y='probability', color='emotions')
-                    st.altair_chart(fig, use_container_width=True)
-
-                    # Database storage
-                    now = datetime.now()
-                    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-                    # Convert image bytes to base64 string for storage
-                    if uploaded_image is not None:
-                        img_str = base64.b64encode(uploaded_image.read()).decode("utf-8")
-                    else:
-                        img_str = None
-                    db.child(user['localId']).child("Summaries").push({
-                        'Text': transcript.text,
-                        'Summary': transcript_summary,
-                        'Image': img_str,  # Store base64 image string here
-                        'Timestamp': dt_string
-                    })
+        # elif bio == 'Summarize Document':
+        #     # Your code for summarizing document here
+        #     st.subheader("Summarize Document using txtai")
+        #
+        #     input_file = st.file_uploader("Upload your document here", type=['pdf'])
+        #
+        #     # Image upload option
+        #     uploaded_image = st.file_uploader("Upload an image")
+        #
+        #     if st.button("Summarize Document"):
+        #         with open("doc_file.pdf", "wb") as f:
+        #             f.write(input_file.getbuffer())
+        #
+        #         col1, col2, col3 = st.columns([1, 1, 1])
+        #
+        #         with col1:
+        #             st.info("File uploaded successfully")
+        #
+        #             extracted_text = extract_text_from_pdf("doc_file.pdf")
+        #
+        #             st.markdown("**Extracted Text is Below:**")
+        #
+        #             st.info(extracted_text)
+        #
+        #         with col2:
+        #             st.markdown("**Summary Result**")
+        #
+        #             doc_summary = text_summary(extracted_text)
+        #
+        #             st.success(doc_summary)
+        #
+        #         with col3:
+        #             st.markdown("**Emotion Prediction**")
+        #
+        #             prediction = predict_emotions(extracted_text)
+        #
+        #             probability = get_prediction_proba(extracted_text)
+        #
+        #             emoji_icon = emotions_emoji_dict[prediction]
+        #
+        #             st.write("{}:{}".format(prediction, emoji_icon))
+        #
+        #             st.write("Confidence:{}".format(np.max(probability)))
+        #
+        #             st.success("Prediction Probability")
+        #
+        #             proba_df = pd.DataFrame(probability, columns=pipe_lr.classes_)
+        #
+        #             proba_df_clean = proba_df.T.reset_index()
+        #
+        #             proba_df_clean.columns = ["emotions", "probability"]
+        #
+        #             fig = alt.Chart(proba_df_clean).mark_bar().encode(x='emotions', y='probability', color='emotions')
+        #
+        #             st.altair_chart(fig, use_container_width=True)
+        #
+        #             if prediction == "joy":
+        #                 st.info(
+        #                     "Celebrate the moments of joy, for they are the fuel that propels you forward on your journey. Let the warmth of joy fill your heart and illuminate your path. Use this positive energy to inspire others, spread kindness, and create more moments of joy in your life and the lives of those around you. Embrace the beauty of joy, for it is a precious gift that enriches your soul and nourishes your spirit.")
+        #             elif prediction == "surprise":
+        #                 st.info(
+        #                     "Embrace the magic of surprise as a reminder of life's infinite possibilities. Allow yourself to be swept away by the unexpected, for it is in these moments that we find joy, growth, and new beginnings. Embrace the unknown with open arms, for within it lies the potential for extraordinary experiences and profound transformations. Embrace surprise as a companion on your journey, guiding you to new horizons and unveiling the wonders that await you.")
+        #             elif prediction == "sadness":
+        #                 st.info(
+        #                     "Sadness is a gentle reminder of our capacity to feel deeply. Allow yourself to acknowledge and honor your emotions, for they are a testament to your humanity. Through moments of sadness, we discover empathy, compassion, and resilience. Remember, just as the clouds pass, so too shall sadness. Embrace the journey, knowing that every tear holds the promise of healing and growth.")
+        #             elif prediction == "neutral":
+        #                 st.info(
+        #                     "In the calm waters of neutrality, lies the canvas of possibility. Use this moment to reflect, to pause, and to appreciate the beauty of simplicity. In neutrality, there is freedom to explore, to dream, and to discover new paths. Embrace the serenity of the present moment, for within it, lies the potential to shape your future with clarity and purpose.")
+        #             elif prediction == "anger":
+        #                 st.info(
+        #                     "Harness the power of your anger as fuel for positive change. Use its intensity to drive you towards constructive action and meaningful transformation. Channel your anger into passion for justice, determination for personal growth, and empathy for understanding. Remember, beneath the surface of anger lies a wellspring of energy waiting to be directed towards creating a better world and a better you. Embrace this emotion as a catalyst for empowerment and renewal.")
+        #             elif prediction == "fear":
+        #                 st.info(
+        #                     "Embrace fear as a catalyst for growth. Recognize it as a sign that you're stepping out of your comfort zone, where real transformation occurs. Channel fear into fuel for courage and resilience. Break free from the chains of apprehension, for within fear lies untapped potential and opportunity. Embrace the unknown with a spirit of curiosity, knowing that overcoming fear leads to personal evolution and empowerment.")
+        #             elif prediction == "disgust":
+        #                 st.info(
+        #                     "In moments of disgust, remember that discomfort often precedes growth. Use this feeling as a catalyst for change, guiding you toward healthier choices and environments. Embrace the power within you to transform negativity into positivity. Recognize that through confronting what disgusts you, you reclaim control over your surroundings and pave the way for a more fulfilling and authentic life")
+        #             elif prediction == "shame":
+        #                 st.info(
+        #                     "Shame may weigh heavy, but it doesn't define your worth. Acknowledge it as a signal for growth, not a sentence of condemnation. Embrace vulnerability, for it's the gateway to self-compassion and healing. Recognize that imperfection is part of being human. Let go of shame's grip, and allow self-acceptance to guide you towards a path of authenticity and empowerment.")
+        #
+        #         # Store text, image, summary, and prediction in the database
+        #         now = datetime.now()
+        #         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        #         # Convert image bytes to base64 string for storage
+        #         if uploaded_image is not None:
+        #             img_str = base64.b64encode(uploaded_image.read()).decode("utf-8")
+        #         else:
+        #             img_str = None
+        #         db.child(user['localId']).child("Summaries").push({
+        #             'Text': extracted_text,
+        #             'Summary': doc_summary,
+        #             'Image': img_str,  # Store base64 image string here
+        #             'Timestamp': dt_string
+        #         })
+        #
+        # if bio == 'Summarize Audio':
+        #     # Your code for summarizing audio here
+        #     st.title("Summarize Audio")
+        #     st.write("Select an option to provide audio input.")
+        #
+        #     option = st.radio("Select Audio Input Option", ("Upload Audio File", "Record Live Audio"))
+        #
+        #     # Image upload option
+        #     uploaded_image = st.file_uploader("Upload an image")
+        #
+        #     if option == "Upload Audio File":
+        #         uploaded_file = st.file_uploader("Upload an audio file", type=["wav", "mp3"])
+        #
+        #         if uploaded_file:
+        #             audio_bytes = uploaded_file.read()
+        #             audio_path = "audio_file.wav"  # Temporary file path for audio file
+        #             with open(audio_path, "wb") as f:
+        #                 f.write(audio_bytes)
+        #
+        #             st.audio(audio_path, format="audio/wav")
+        #
+        #             # Button to process the audio
+        #             if st.button("Summarize Audio"):
+        #                 # Transcribe the audio file
+        #                 aai.settings.api_key = "ed9174d8ec5a45afa0075b544b8eb2d7"
+        #                 transcriber = aai.Transcriber()
+        #                 transcript = transcriber.transcribe(audio_path)
+        #
+        #                 # Display the transcription summary
+        #                 st.subheader("Transcription Summary")
+        #                 transcript_summary = text_summary(transcript.text)
+        #                 st.success(transcript_summary)
+        #
+        #                 # Display the emotion prediction
+        #                 st.subheader("Emotion Prediction")
+        #                 prediction = predict_emotions(transcript.text)
+        #                 probability = get_prediction_proba(transcript.text)
+        #                 emoji_icon = emotions_emoji_dict[prediction]
+        #                 st.write("{}:{}".format(prediction, emoji_icon))
+        #                 st.write("Confidence:{}".format(np.max(probability)))
+        #
+        #                 st.success("Prediction Probability")
+        #                 proba_df = pd.DataFrame(probability, columns=pipe_lr.classes_)
+        #                 proba_df_clean = proba_df.T.reset_index()
+        #                 proba_df_clean.columns = ["emotions", "probability"]
+        #                 fig = alt.Chart(proba_df_clean).mark_bar().encode(x='emotions', y='probability',
+        #                                                                   color='emotions')
+        #                 st.altair_chart(fig, use_container_width=True)
+        #
+        #                 if prediction == "joy":
+        #                     st.info(
+        #                         "Celebrate the moments of joy, for they are the fuel that propels you forward on your journey. Let the warmth of joy fill your heart and illuminate your path. Use this positive energy to inspire others, spread kindness, and create more moments of joy in your life and the lives of those around you. Embrace the beauty of joy, for it is a precious gift that enriches your soul and nourishes your spirit.")
+        #                 elif prediction == "surprise":
+        #                     st.info(
+        #                         "Embrace the magic of surprise as a reminder of life's infinite possibilities. Allow yourself to be swept away by the unexpected, for it is in these moments that we find joy, growth, and new beginnings. Embrace the unknown with open arms, for within it lies the potential for extraordinary experiences and profound transformations. Embrace surprise as a companion on your journey, guiding you to new horizons and unveiling the wonders that await you.")
+        #                 elif prediction == "sadness":
+        #                     st.info(
+        #                         "Sadness is a gentle reminder of our capacity to feel deeply. Allow yourself to acknowledge and honor your emotions, for they are a testament to your humanity. Through moments of sadness, we discover empathy, compassion, and resilience. Remember, just as the clouds pass, so too shall sadness. Embrace the journey, knowing that every tear holds the promise of healing and growth.")
+        #                 elif prediction == "neutral":
+        #                     st.info(
+        #                         "In the calm waters of neutrality, lies the canvas of possibility. Use this moment to reflect, to pause, and to appreciate the beauty of simplicity. In neutrality, there is freedom to explore, to dream, and to discover new paths. Embrace the serenity of the present moment, for within it, lies the potential to shape your future with clarity and purpose.")
+        #                 elif prediction == "anger":
+        #                     st.info(
+        #                         "Harness the power of your anger as fuel for positive change. Use its intensity to drive you towards constructive action and meaningful transformation. Channel your anger into passion for justice, determination for personal growth, and empathy for understanding. Remember, beneath the surface of anger lies a wellspring of energy waiting to be directed towards creating a better world and a better you. Embrace this emotion as a catalyst for empowerment and renewal.")
+        #                 elif prediction == "fear":
+        #                     st.info(
+        #                         "Embrace fear as a catalyst for growth. Recognize it as a sign that you're stepping out of your comfort zone, where real transformation occurs. Channel fear into fuel for courage and resilience. Break free from the chains of apprehension, for within fear lies untapped potential and opportunity. Embrace the unknown with a spirit of curiosity, knowing that overcoming fear leads to personal evolution and empowerment.")
+        #                 elif prediction == "disgust":
+        #                     st.info(
+        #                         "In moments of disgust, remember that discomfort often precedes growth. Use this feeling as a catalyst for change, guiding you toward healthier choices and environments. Embrace the power within you to transform negativity into positivity. Recognize that through confronting what disgusts you, you reclaim control over your surroundings and pave the way for a more fulfilling and authentic life")
+        #                 elif prediction == "shame":
+        #                     st.info(
+        #                         "Shame may weigh heavy, but it doesn't define your worth. Acknowledge it as a signal for growth, not a sentence of condemnation. Embrace vulnerability, for it's the gateway to self-compassion and healing. Recognize that imperfection is part of being human. Let go of shame's grip, and allow self-acceptance to guide you towards a path of authenticity and empowerment.")
+        #
+        #                 # Store text, image, summary, and prediction in the database
+        #                 now = datetime.now()
+        #                 dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        #                 # Convert image bytes to base64 string for storage
+        #                 if uploaded_image is not None:
+        #                     img_str = base64.b64encode(uploaded_image.read()).decode("utf-8")
+        #                 else:
+        #                     img_str = None
+        #                 db.child(user['localId']).child("Summaries").push({
+        #                     'Text': transcript.text,
+        #                     'Summary': transcript_summary,
+        #                     'Image': img_str,
+        #                     'Timestamp': dt_string
+        #                 })
+        #     elif option == "Record Live Audio":
+        #         duration = st.slider("Recording Duration (seconds):", 1, 150, 3)
+        #         fs = 44100  # Sample rate
+        #         channels = 2  # Number of audio channels (1 for mono, 2 for stereo)
+        #         recording = record_audio(duration, fs, channels)
+        #
+        #         # Save the recording to a WAV file
+        #         audio_path = "audio_file.wav"
+        #         with wave.open(audio_path, 'wb') as wf:
+        #             wf.setnchannels(channels)
+        #             wf.setsampwidth(pyaudio.PyAudio().get_sample_size(pyaudio.paInt16))
+        #             wf.setframerate(fs)
+        #             wf.writeframes(recording)
+        #
+        #         st.audio(audio_path, format="audio/wav")
+        #
+        #         # Button to process the audio
+        #         if st.button("Summarize Audio"):
+        #             # Transcribe the audio file
+        #             aai.settings.api_key = "ed9174d8ec5a45afa0075b544b8eb2d7"
+        #             transcriber = aai.Transcriber()
+        #             transcript = transcriber.transcribe(audio_path)
+        #
+        #             # Display the transcription summary
+        #             st.subheader("Transcription Summary")
+        #             transcript_summary = text_summary(transcript.text)
+        #             st.success(transcript_summary)
+        #
+        #             # Display the emotion prediction
+        #             st.subheader("Emotion Prediction")
+        #             prediction = predict_emotions(transcript.text)
+        #             probability = get_prediction_proba(transcript.text)
+        #             emoji_icon = emotions_emoji_dict[prediction]
+        #             st.write("{}:{}".format(prediction, emoji_icon))
+        #             st.write("Confidence:{}".format(np.max(probability)))
+        #
+        #             st.success("Prediction Probability")
+        #             proba_df = pd.DataFrame(probability, columns=pipe_lr.classes_)
+        #             proba_df_clean = proba_df.T.reset_index()
+        #             proba_df_clean.columns = ["emotions", "probability"]
+        #             fig = alt.Chart(proba_df_clean).mark_bar().encode(x='emotions', y='probability', color='emotions')
+        #             st.altair_chart(fig, use_container_width=True)
+        #
+        #             # Database storage
+        #             now = datetime.now()
+        #             dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        #             # Convert image bytes to base64 string for storage
+        #             if uploaded_image is not None:
+        #                 img_str = base64.b64encode(uploaded_image.read()).decode("utf-8")
+        #             else:
+        #                 img_str = None
+        #             db.child(user['localId']).child("Summaries").push({
+        #                 'Text': transcript.text,
+        #                 'Summary': transcript_summary,
+        #                 'Image': img_str,  # Store base64 image string here
+        #                 'Timestamp': dt_string
+        #             })
