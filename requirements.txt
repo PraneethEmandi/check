@@ -1,0 +1,13 @@
+wavio
+pyaudio
+pyrebase4
+streamlit
+assemblyai
+PyPDF2
+txtai
+datetime
+joblib
+pandas
+numpy
+altair
+scikit-learn
